@@ -1,0 +1,33 @@
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.20;
+
+interface IERC20 {
+    function transferFrom(address sender, address recipient, uint256 amount) external returns (bool);
+    function transfer(address recipient, uint256 amount) external returns (bool);
+}
+
+contract KikiFX {
+    IERC20 public baseToken; // KUSD
+    IERC20 public rwaToken;  // kRWA
+
+    constructor(address _baseToken, address _rwaToken) {
+        baseToken = IERC20(_baseToken);
+        rwaToken = IERC20(_rwaToken);
+    }
+
+    // 核心交易功能：用户支付 USD，获得 RWA
+    function buyRWA(uint256 usdAmount) external {
+        // 1. 收款：从用户钱包扣除 KUSD
+        bool success1 = baseToken.transferFrom(msg.sender, address(this), usdAmount);
+        require(success1, "Transfer KUSD failed");
+
+        // 2. 发货：将等量的 kRWA 发给用户 (这里假设 1:1 汇率)
+        bool success2 = rwaToken.transfer(msg.sender, usdAmount);
+        require(success2, "Transfer RWA failed (Low inventory?)");
+    }
+
+    // 管理员功能：提取赚到的 KUSD
+    function withdrawBaseTokens() external {
+        baseToken.transfer(msg.sender, baseToken.balanceOf(address(this)));
+    }
+}
